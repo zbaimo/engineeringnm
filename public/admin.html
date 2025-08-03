@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>管理员登录 - 混凝土量计算器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet" />
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .card-shadow { box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+      .btn-hover { @apply transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5; }
+      .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+      .gradient-bg-alt { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+      .gradient-bg-success { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+      .gradient-bg-warning { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+      .glass-effect { 
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .input-focus { @apply focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200; }
+      .btn-primary { @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium; }
+      .btn-success { @apply bg-gradient-to-r from-green-500 to-green-600 text-white font-medium; }
+      .btn-danger { @apply bg-gradient-to-r from-red-500 to-red-600 text-white font-medium; }
+      .btn-warning { @apply bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-medium; }
+      .btn-purple { @apply bg-gradient-to-r from-purple-500 to-purple-600 text-white font-medium; }
+      .btn-admin { @apply bg-gradient-to-r from-red-500 to-red-600 text-white font-medium; }
+    }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+  <!-- 管理员登录界面 -->
+  <div id="admin-login-container" class="w-full max-w-md glass-effect rounded-2xl p-8 card-shadow">
+    <h2 class="text-3xl font-bold text-center mb-8 flex items-center justify-center text-gray-800">
+      <i class="fa fa-shield mr-3 text-red-600"></i> 管理员登录
+    </h2>
+    
+    <div class="mb-6">
+      <label class="block text-sm font-semibold text-gray-700 mb-2">管理员账号</label>
+      <input id="admin-username" type="text" placeholder="请输入管理员账号"
+             class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+    </div>
+    
+    <div class="mb-8">
+      <label class="block text-sm font-semibold text-gray-700 mb-2">管理员密码</label>
+      <input id="admin-password" type="password" placeholder="请输入管理员密码"
+             class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+    </div>
+    
+    <div class="mb-6">
+      <button id="admin-login-btn" class="w-full btn-admin px-6 py-3 rounded-xl btn-hover">
+        <i class="fa fa-sign-in mr-2"></i> 管理员登录
+      </button>
+    </div>
+    
+    <p id="admin-auth-error" class="text-red-500 text-sm text-center"></p>
+  </div>
+
+  <!-- 管理员主界面 -->
+  <div id="admin-container" class="w-full max-w-6xl glass-effect rounded-2xl p-8 card-shadow" style="display: none;">
+    <div class="flex justify-between items-center mb-8">
+      <h2 class="text-3xl font-bold text-gray-800 flex items-center">
+        <i class="fa fa-shield mr-3 text-red-600"></i> 管理员控制面板
+      </h2>
+      <div class="flex items-center gap-3">
+        <span id="admin-current-user" class="text-sm text-gray-600 bg-white/50 px-3 py-2 rounded-lg"></span>
+        <button id="admin-logout-btn" class="btn-danger px-4 py-2 rounded-xl text-sm btn-hover">
+          <i class="fa fa-sign-out mr-2"></i> 退出管理
+        </button>
+      </div>
+    </div>
+
+    <!-- 管理员设置 -->
+    <div class="mb-8 p-6 border border-gray-200 rounded-2xl bg-white/60">
+      <h3 class="text-xl font-semibold mb-6 flex items-center text-gray-800">
+        <i class="fa fa-cog mr-3 text-blue-600"></i> 管理员设置
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">管理员账号</label>
+          <input id="new-admin-username" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">管理员密码</label>
+          <input id="new-admin-password" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+        </div>
+      </div>
+      <div class="mt-6">
+        <button id="update-admin-btn" class="btn-primary px-6 py-3 rounded-xl btn-hover">
+          <i class="fa fa-save mr-2"></i> 更新管理员账号
+        </button>
+      </div>
+    </div>
+
+    <!-- 系统设置 -->
+    <div class="mb-8 p-6 border border-gray-200 rounded-2xl bg-white/60">
+      <h3 class="text-xl font-semibold mb-6 flex items-center text-gray-800">
+        <i class="fa fa-toggle-on mr-3 text-green-600"></i> 系统设置
+      </h3>
+      <div class="flex items-center gap-6">
+        <label class="flex items-center">
+          <input id="allow-registration" type="checkbox" class="mr-3 w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
+          <span class="text-sm font-semibold text-gray-700">允许普通用户注册</span>
+        </label>
+        <button id="update-settings-btn" class="btn-success px-6 py-3 rounded-xl btn-hover">
+          <i class="fa fa-save mr-2"></i> 保存设置
+        </button>
+      </div>
+    </div>
+
+    <!-- 用户管理 -->
+    <div class="p-6 border border-gray-200 rounded-2xl bg-white/60">
+      <h3 class="text-xl font-semibold mb-6 flex items-center text-gray-800">
+        <i class="fa fa-users mr-3 text-purple-600"></i> 用户管理
+      </h3>
+      <div class="overflow-x-auto">
+        <div class="max-h-64 overflow-y-auto border border-gray-200 rounded-xl bg-white/80">
+          <table class="min-w-full">
+            <thead class="bg-gray-50 text-gray-700 sticky top-0">
+              <tr>
+                <th class="px-6 py-4 text-left font-semibold">用户名</th>
+                <th class="px-6 py-4 text-left font-semibold">历史数据数量</th>
+                <th class="px-6 py-4 text-left font-semibold">注册时间</th>
+                <th class="px-6 py-4 text-left font-semibold">操作</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-tbody" class="text-center"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      let adminToken = localStorage.getItem('adminToken');
+      let adminUser = localStorage.getItem('adminUser');
+      
+      // 安全工具函数
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+      
+      const adminLoginContainer = document.getElementById('admin-login-container');
+      const adminContainer = document.getElementById('admin-container');
+      const adminAuthError = document.getElementById('admin-auth-error');
+      const adminCurrentUserSpan = document.getElementById('admin-current-user');
+      
+      // 检查管理员登录状态
+      function checkAdminAuth() {
+        if (adminToken && adminUser) {
+          adminLoginContainer.style.display = 'none';
+          adminContainer.style.display = 'block';
+          adminCurrentUserSpan.textContent = `管理员：${escapeHtml(adminUser)}`;
+          loadAdminData();
+        } else {
+          adminLoginContainer.style.display = 'block';
+          adminContainer.style.display = 'none';
+        }
+      }
+      
+      // 管理员登录
+      async function adminLogin() {
+        const username = document.getElementById('admin-username').value.trim();
+        const password = document.getElementById('admin-password').value.trim();
+        
+        if (!username || !password) {
+          adminAuthError.textContent = '请输入管理员账号和密码';
+          return;
+        }
+        
+        try {
+          const res = await fetch('/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+          
+          const data = await res.json();
+          
+          if (res.ok) {
+            adminToken = data.token;
+            adminUser = username;
+            localStorage.setItem('adminToken', adminToken);
+            localStorage.setItem('adminUser', adminUser);
+            checkAdminAuth();
+            adminAuthError.textContent = '';
+          } else {
+            adminAuthError.textContent = data.message || '管理员登录失败';
+          }
+        } catch (err) {
+          console.error(err);
+          adminAuthError.textContent = '管理员登录失败';
+        }
+      }
+      
+      // 管理员退出
+      function adminLogout() {
+        adminToken = null;
+        adminUser = null;
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
+        checkAdminAuth();
+      }
+      
+      // 加载管理员数据
+      async function loadAdminData() {
+        try {
+          // 加载管理员设置
+          const settingsRes = await fetch('/admin/settings', {
+            headers: { 'Authorization': adminToken }
+          });
+          
+          if (settingsRes.ok) {
+            const settings = await settingsRes.json();
+            document.getElementById('new-admin-username').value = settings.adminUsername || 'admin';
+            document.getElementById('new-admin-password').value = '';
+            document.getElementById('allow-registration').checked = settings.allowRegistration !== false;
+          }
+          
+          // 加载用户列表
+          const usersRes = await fetch('/admin/users', {
+            headers: { 'Authorization': adminToken }
+          });
+          
+          if (usersRes.ok) {
+            const users = await usersRes.json();
+            renderUsersTable(users);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      
+      // 渲染用户表格
+      function renderUsersTable(users) {
+        const tbody = document.getElementById('admin-users-tbody');
+        tbody.innerHTML = '';
+        
+        if (users.length === 0) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td colspan="4" class="px-4 py-2 text-gray-500">暂无用户数据</td>';
+          tbody.appendChild(tr);
+          return;
+        }
+        
+        users.forEach(user => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="border-b border-gray-200 px-6 py-4">${escapeHtml(user.username)}</td>
+            <td class="border-b border-gray-200 px-6 py-4 font-semibold text-blue-600">${user.historyCount || 0}</td>
+            <td class="border-b border-gray-200 px-6 py-4">${user.createdAt ? new Date(user.createdAt).toLocaleString() : '未知'}</td>
+            <td class="border-b border-gray-200 px-6 py-4">
+              <button data-username="${escapeHtml(user.username)}" class="update-user-btn btn-primary px-3 py-1 rounded-lg hover:shadow-lg mr-2">更新密码</button>
+              <button data-username="${escapeHtml(user.username)}" class="delete-user-btn btn-danger px-3 py-1 rounded-lg hover:shadow-lg">删除账户</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+        
+        // 绑定更新密码事件
+        document.querySelectorAll('.update-user-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const username = e.target.getAttribute('data-username');
+            const newPassword = prompt(`请输入用户 ${username} 的新密码：`);
+            if (newPassword) {
+              await updateUserPassword(username, newPassword);
+            }
+          });
+        });
+        
+        // 绑定删除账户事件
+        document.querySelectorAll('.delete-user-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const username = e.target.getAttribute('data-username');
+            if (confirm(`确定要删除用户 ${username} 吗？此操作不可恢复！`)) {
+              await deleteUser(username);
+            }
+          });
+        });
+      }
+      
+      // 更新用户密码
+      async function updateUserPassword(username, newPassword) {
+        try {
+          const res = await fetch(`/admin/users/${username}/password`, {
+            method: 'PUT',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': adminToken
+            },
+            body: JSON.stringify({ password: newPassword })
+          });
+          
+          if (res.ok) {
+            alert('用户密码更新成功！');
+            loadAdminData();
+          } else {
+            const data = await res.json();
+            alert(data.message || '更新失败');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('更新失败');
+        }
+      }
+      
+      // 删除用户
+      async function deleteUser(username) {
+        try {
+          const res = await fetch(`/admin/users/${username}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': adminToken }
+          });
+          
+          if (res.ok) {
+            alert('用户删除成功！');
+            loadAdminData();
+          } else {
+            const data = await res.json();
+            alert(data.message || '删除失败');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('删除失败');
+        }
+      }
+      
+      // 更新管理员账号
+      async function updateAdminAccount() {
+        const newUsername = document.getElementById('new-admin-username').value.trim();
+        const newPassword = document.getElementById('new-admin-password').value.trim();
+        
+        if (!newUsername || !newPassword) {
+          alert('请输入新的管理员账号和密码');
+          return;
+        }
+        
+        try {
+          const res = await fetch('/admin/account', {
+            method: 'PUT',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': adminToken
+            },
+            body: JSON.stringify({ username: newUsername, password: newPassword })
+          });
+          
+          if (res.ok) {
+            alert('管理员账号更新成功！请使用新账号重新登录。');
+            adminLogout();
+          } else {
+            const data = await res.json();
+            alert(data.message || '更新失败');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('更新失败');
+        }
+      }
+      
+      // 更新系统设置
+      async function updateSystemSettings() {
+        const allowRegistration = document.getElementById('allow-registration').checked;
+        
+        try {
+          const res = await fetch('/admin/settings', {
+            method: 'PUT',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': adminToken
+            },
+            body: JSON.stringify({ allowRegistration })
+          });
+          
+          if (res.ok) {
+            alert('系统设置更新成功！');
+          } else {
+            const data = await res.json();
+            alert(data.message || '更新失败');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('更新失败');
+        }
+      }
+      
+      // 事件监听器
+      document.getElementById('admin-login-btn').addEventListener('click', adminLogin);
+      document.getElementById('admin-logout-btn').addEventListener('click', adminLogout);
+      document.getElementById('update-admin-btn').addEventListener('click', updateAdminAccount);
+      document.getElementById('update-settings-btn').addEventListener('click', updateSystemSettings);
+      
+      // 初始化
+      checkAdminAuth();
+    })();
+  </script>
+</body>
+</html> 

@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>混凝土量计算器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet" />
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .card-shadow { box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+      .btn-hover { @apply transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5; }
+      .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+      .gradient-bg-alt { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+      .gradient-bg-success { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+      .gradient-bg-warning { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+      .glass-effect { 
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .input-focus { @apply focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200; }
+      .btn-primary { @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium; }
+      .btn-success { @apply bg-gradient-to-r from-green-500 to-green-600 text-white font-medium; }
+      .btn-danger { @apply bg-gradient-to-r from-red-500 to-red-600 text-white font-medium; }
+      .btn-warning { @apply bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-medium; }
+      .btn-purple { @apply bg-gradient-to-r from-purple-500 to-purple-600 text-white font-medium; }
+    }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+  <!-- 登录界面 -->
+  <div id="login-container" class="w-full max-w-md glass-effect rounded-2xl p-8 card-shadow">
+    <h2 class="text-3xl font-bold text-center mb-8 flex items-center justify-center text-gray-800">
+      <i class="fa fa-cubes mr-3 text-blue-600"></i> 混凝土量计算器
+    </h2>
+    
+    <div class="mb-6">
+      <label class="block text-sm font-semibold text-gray-700 mb-2">用户名</label>
+      <input id="username" type="text" placeholder="请输入用户名"
+             class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+    </div>
+    
+    <div class="mb-8">
+      <label class="block text-sm font-semibold text-gray-700 mb-2">密码</label>
+      <input id="password" type="password" placeholder="请输入密码"
+             class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+    </div>
+    
+    <div class="flex gap-3 mb-6">
+      <button id="login-btn" class="flex-1 btn-primary px-6 py-3 rounded-xl btn-hover">
+        <i class="fa fa-sign-in mr-2"></i> 登录
+      </button>
+      <button id="register-btn" class="flex-1 btn-success px-6 py-3 rounded-xl btn-hover">
+        <i class="fa fa-user-plus mr-2"></i> 注册
+      </button>
+    </div>
+    
+    <p id="auth-error" class="text-red-500 text-sm text-center"></p>
+  </div>
+
+  <!-- 主应用界面 -->
+  <div id="app-container" class="w-full max-w-6xl glass-effect rounded-2xl p-8 card-shadow" style="display: none;">
+    <div class="flex justify-between items-center mb-8">
+      <h2 class="text-3xl font-bold text-gray-800 flex items-center">
+        <i class="fa fa-cubes mr-3 text-blue-600"></i> 混凝土量计算
+      </h2>
+      <div class="flex items-center gap-3">
+        <button id="history-btn" class="btn-purple px-4 py-2 rounded-xl text-sm btn-hover">
+          <i class="fa fa-history mr-2"></i> 历史数据
+        </button>
+        <span id="current-user" class="text-sm text-gray-600 bg-white/50 px-3 py-2 rounded-lg"></span>
+        <button id="logout-btn" class="btn-danger px-4 py-2 rounded-xl text-sm btn-hover">
+          <i class="fa fa-sign-out mr-2"></i> 退出
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 mb-6">
+      <input id="part-input" type="text" placeholder="添加部位名称，如 地下室"
+             class="flex-1 px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+      <button id="add-part-btn" class="btn-primary px-6 py-3 rounded-xl btn-hover">
+        <i class="fa fa-plus mr-2"></i> 添加部位
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">选择部位<span class="text-red-500">*</span></label>
+        <select id="part" class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80">
+          <option disabled selected>请选择部位</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">构件类型</label>
+        <select id="type" class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80">
+          <option>梁</option>
+          <option>板</option>
+          <option>墙</option>
+          <option>柱</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">编号<span class="text-red-500">*</span></label>
+        <input id="number" type="text" placeholder="如 001"
+               class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">高度 (m)</label>
+        <input id="height" type="number" step="0.001"
+               class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">厚度 (m)</label>
+        <input id="thick" type="number" step="0.001"
+               class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">长度 (m)</label>
+        <input id="length" type="number" step="0.001"
+               class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+      </div>
+    </div>
+
+    <div class="flex items-center mb-8">
+      <input id="count" type="number" min="1" value="1"
+             class="w-32 px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80 mr-6" />
+      <button id="add-btn" class="btn-success px-6 py-3 rounded-xl btn-hover">
+        <i class="fa fa-plus mr-2"></i> 添加构件
+      </button>
+      <p id="error" class="ml-6 text-red-500 text-sm"></p>
+    </div>
+
+    <div class="overflow-x-auto mb-8">
+      <div class="max-h-64 overflow-y-auto border border-gray-200 rounded-xl bg-white/80">
+        <table class="min-w-full">
+          <thead class="bg-gray-50 text-gray-700 sticky top-0">
+            <tr>
+              <th class="px-6 py-4 text-left font-semibold">部位</th>
+              <th class="px-6 py-4 text-left font-semibold">构件</th>
+              <th class="px-6 py-4 text-left font-semibold">编号</th>
+              <th class="px-6 py-4 text-left font-semibold">高度(m)</th>
+              <th class="px-6 py-4 text-left font-semibold">厚度(m)</th>
+              <th class="px-6 py-4 text-left font-semibold">长度(m)</th>
+              <th class="px-6 py-4 text-left font-semibold">数量</th>
+              <th class="px-6 py-4 text-left font-semibold">体积(m³)</th>
+              <th class="px-6 py-4 text-left font-semibold">操作</th>
+            </tr>
+          </thead>
+          <tbody id="tbody" class="text-center"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 分页控件 -->
+    <div class="flex justify-between items-center mb-8 px-6 py-4 bg-white/60 rounded-2xl border border-gray-200">
+      <div class="flex items-center gap-4">
+        <span class="text-sm font-semibold text-gray-700">每页显示:</span>
+        <select id="page-size" class="px-4 py-2 border border-gray-300 rounded-lg text-sm input-focus bg-white/80">
+          <option value="5">5条</option>
+          <option value="10" selected>10条</option>
+          <option value="20">20条</option>
+          <option value="50">50条</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-4">
+        <button id="prev-page" class="px-6 py-2 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-white/80">
+          <i class="fa fa-chevron-left mr-2"></i>上一页
+        </button>
+        <span class="text-sm font-semibold text-gray-700 px-6 py-2 bg-white border border-gray-300 rounded-lg">
+          第 <span id="current-page" class="text-blue-600 font-bold">1</span> 页，共 <span id="total-pages" class="text-blue-600 font-bold">1</span> 页
+        </span>
+        <button id="next-page" class="px-6 py-2 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-white/80">
+          下一页<i class="fa fa-chevron-right ml-2"></i>
+        </button>
+      </div>
+      <div class="text-sm font-semibold text-gray-700">
+        共 <span id="total-records" class="text-blue-600 font-bold">0</span> 条记录
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center">
+      <div class="text-sm text-gray-600 bg-white/50 px-4 py-2 rounded-lg">
+        <span id="stats-info">记录: 0 | 部位: 0 | 构件类型: 0</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="text-xl font-bold text-gray-800 bg-white/50 px-6 py-3 rounded-xl">
+          总量：<span id="total" class="text-blue-600">0.000</span> m³
+        </div>
+        <button id="save-btn" class="btn-success px-6 py-3 rounded-xl btn-hover">
+          <i class="fa fa-save mr-2"></i> 保存数据
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 历史数据页面 -->
+  <div id="history-container" class="w-full max-w-6xl glass-effect rounded-2xl p-8 card-shadow" style="display: none;">
+    <div class="flex justify-between items-center mb-8">
+      <h2 class="text-3xl font-bold text-gray-800 flex items-center">
+        <i class="fa fa-history mr-3 text-purple-600"></i> 历史数据
+      </h2>
+      <button id="back-to-main" class="btn-primary px-4 py-2 rounded-xl text-sm btn-hover">
+        <i class="fa fa-arrow-left mr-2"></i> 返回主界面
+      </button>
+    </div>
+
+    <div class="overflow-x-auto">
+      <div class="max-h-64 overflow-y-auto border border-gray-200 rounded-xl bg-white/80">
+        <table class="min-w-full">
+          <thead class="bg-gray-50 text-gray-700 sticky top-0">
+            <tr>
+              <th class="px-6 py-4 text-left font-semibold">名称</th>
+              <th class="px-6 py-4 text-left font-semibold">记录数</th>
+              <th class="px-6 py-4 text-left font-semibold">总体积(m³)</th>
+              <th class="px-6 py-4 text-left font-semibold">创建时间</th>
+              <th class="px-6 py-4 text-left font-semibold">更新时间</th>
+              <th class="px-6 py-4 text-left font-semibold">操作</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody" class="text-center"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 历史数据详情页面 -->
+  <div id="history-detail-container" class="w-full max-w-7xl glass-effect rounded-2xl p-8 card-shadow" style="display: none;">
+    <div class="flex justify-between items-center mb-8">
+      <h2 class="text-3xl font-bold text-gray-800 flex items-center">
+        <i class="fa fa-edit mr-3 text-blue-600"></i> 历史数据详情
+      </h2>
+      <div class="flex items-center gap-3">
+        <button id="export-history-detail-btn" class="btn-primary px-4 py-2 rounded-xl text-sm btn-hover">
+          <i class="fa fa-download mr-2"></i> 导出数据
+        </button>
+        <button id="save-history-btn" class="btn-success px-4 py-2 rounded-xl text-sm btn-hover">
+          <i class="fa fa-save mr-2"></i> 保存修改
+        </button>
+        <button id="back-to-history" class="btn-warning px-4 py-2 rounded-xl text-sm btn-hover">
+          <i class="fa fa-arrow-left mr-2"></i> 返回历史
+        </button>
+      </div>
+    </div>
+
+    <div class="mb-6">
+      <label class="block text-sm font-semibold text-gray-700 mb-2">数据名称</label>
+      <input id="history-name-input" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl input-focus bg-white/80" />
+    </div>
+
+    <div class="overflow-x-auto mb-8">
+      <div class="max-h-64 overflow-y-auto border border-gray-200 rounded-xl bg-white/80">
+        <table class="min-w-full">
+          <thead class="bg-gray-50 text-gray-700 sticky top-0">
+            <tr>
+              <th class="px-6 py-4 text-left font-semibold">部位</th>
+              <th class="px-6 py-4 text-left font-semibold">构件</th>
+              <th class="px-6 py-4 text-left font-semibold">编号</th>
+              <th class="px-6 py-4 text-left font-semibold">高度(m)</th>
+              <th class="px-6 py-4 text-left font-semibold">厚度(m)</th>
+              <th class="px-6 py-4 text-left font-semibold">长度(m)</th>
+              <th class="px-6 py-4 text-left font-semibold">数量</th>
+              <th class="px-6 py-4 text-left font-semibold">体积(m³)</th>
+              <th class="px-6 py-4 text-left font-semibold">操作</th>
+            </tr>
+          </thead>
+          <tbody id="history-detail-tbody" class="text-center"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center">
+      <div class="text-sm text-gray-600 bg-white/50 px-4 py-2 rounded-lg">
+        <span id="history-detail-stats">记录: 0 | 部位: 0 | 构件类型: 0</span>
+      </div>
+      <div class="text-xl font-bold text-gray-800 bg-white/50 px-6 py-3 rounded-xl">
+        总量：<span id="history-detail-total" class="text-blue-600">0.000</span> m³
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      let token = localStorage.getItem('token');
+      let currentUser = localStorage.getItem('currentUser');
+      
+      // 安全工具函数
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+      
+      function safeSetInnerHTML(element, html) {
+        element.innerHTML = html;
+      }
+      
+      const loginContainer = document.getElementById('login-container');
+      const appContainer = document.getElementById('app-container');
+      const authError = document.getElementById('auth-error');
+      const currentUserSpan = document.getElementById('current-user');
+      
+      // 检查登录状态
+      function checkAuth() {
+        if (token && currentUser) {
+          loginContainer.style.display = 'none';
+          appContainer.style.display = 'block';
+          currentUserSpan.textContent = `用户：${escapeHtml(currentUser)}`;
+          loadRecords();
+        } else {
+          loginContainer.style.display = 'block';
+          appContainer.style.display = 'none';
+        }
+      }
+      
+      // 登录
+      async function login() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+        
+        if (!username || !password) {
+          authError.textContent = '请输入用户名和密码';
+          return;
+        }
+        
+        try {
+          const res = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+          
+          const data = await res.json();
+          
+          if (res.ok) {
+            token = data.token;
+            currentUser = username;
+            localStorage.setItem('token', token);
+            localStorage.setItem('currentUser', currentUser);
+            checkAuth();
+            authError.textContent = '';
+          } else {
+            authError.textContent = data.message || '登录失败';
+          }
+        } catch (err) {
+          console.error(err);
+          authError.textContent = '登录失败';
+        }
+      }
+      
+      // 注册
+      async function register() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+        
+        if (!username || !password) {
+          authError.textContent = '请输入用户名和密码';
+          return;
+        }
+        
+        try {
+          const res = await fetch('/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+          
+          const data = await res.json();
+          
+          if (res.ok) {
+            authError.textContent = '注册成功，请登录';
+            authError.className = 'text-green-500 text-sm text-center';
+            setTimeout(() => {
+              authError.textContent = '';
+              authError.className = 'text-red-500 text-sm text-center';
+            }, 2000);
+          } else {
+            authError.textContent = data.message || '注册失败';
+          }
+        } catch (err) {
+          console.error(err);
+          authError.textContent = '注册失败';
+        }
+      }
+      
+      // 退出登录
+      function logout() {
+        token = null;
+        currentUser = null;
+        localStorage.removeItem('token');
+        localStorage.removeItem('currentUser');
+        checkAuth();
+      }
+      
+      // 绑定认证事件
+      document.getElementById('login-btn').addEventListener('click', login);
+      document.getElementById('register-btn').addEventListener('click', register);
+      document.getElementById('logout-btn').addEventListener('click', logout);
+      
+      // 回车键登录
+      document.getElementById('password').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') login();
+      });
+      
+      // 应用功能代码
+      const partInput = document.getElementById('part-input');
+      const partSelect = document.getElementById('part');
+             const error = document.getElementById('error');
+       const tbody = document.getElementById('tbody');
+       const totalDisplay = document.getElementById('total');
+       const statsInfo = document.getElementById('stats-info');
+       
+       // 历史数据相关元素
+       const historyContainer = document.getElementById('history-container');
+       const historyDetailContainer = document.getElementById('history-detail-container');
+       const historyTbody = document.getElementById('history-tbody');
+       const historyDetailTbody = document.getElementById('history-detail-tbody');
+       const historyNameInput = document.getElementById('history-name-input');
+       const historyDetailStats = document.getElementById('history-detail-stats');
+       const historyDetailTotal = document.getElementById('history-detail-total');
+       
+       // 分页相关元素
+       const pageSizeSelect = document.getElementById('page-size');
+       const prevPageBtn = document.getElementById('prev-page');
+       const nextPageBtn = document.getElementById('next-page');
+       const currentPageSpan = document.getElementById('current-page');
+       const totalPagesSpan = document.getElementById('total-pages');
+       const totalRecordsSpan = document.getElementById('total-records');
+       
+       let currentHistoryId = null;
+       
+       // 分页相关变量
+       let allRecords = [];
+       let currentPage = 1;
+       let pageSize = 10;
+
+      async function loadRecords() {
+        try {
+          const res = await fetch('/records', {
+            headers: { 'Authorization': token }
+          });
+          
+          if (!res.ok) {
+            if (res.status === 403) {
+              logout();
+              return;
+            }
+            throw new Error('加载失败');
+          }
+          
+          const data = await res.json();
+          allRecords = data; // 保存所有数据
+
+          // 更新部位选项
+          const partsSet = new Set();
+          data.forEach(r => partsSet.add(r.part));
+          partSelect.innerHTML = '<option disabled>请选择部位</option>';
+          partsSet.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = p;
+            partSelect.appendChild(opt);
+          });
+
+          // 渲染分页数据
+          renderPagedRecords();
+          
+          // 加载统计信息
+          loadStats();
+        } catch (err) {
+          console.error(err);
+          error.textContent = '加载失败';
+        }
+      }
+
+      // 渲染分页数据
+      function renderPagedRecords() {
+        const totalRecords = allRecords.length;
+        const totalPages = Math.ceil(totalRecords / pageSize);
+        
+        // 确保当前页在有效范围内
+        if (currentPage > totalPages) {
+          currentPage = totalPages || 1;
+        }
+        
+        // 计算当前页的数据
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const currentPageData = allRecords.slice(startIndex, endIndex);
+        
+        // 渲染表格
+        tbody.innerHTML = '';
+        let total = 0;
+        currentPageData.forEach((r, i) => {
+          const actualIndex = startIndex + i; // 实际在allRecords中的索引
+          total += r.volume;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="border-b border-gray-200 px-6 py-4">
+              <input type="text" value="${escapeHtml(r.part)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="part" data-index="${actualIndex}">
+            </td>
+            <td class="border-b border-gray-200 px-6 py-4">
+              <select class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="type" data-index="${actualIndex}">
+                <option value="梁" ${r.type === '梁' ? 'selected' : ''}>梁</option>
+                <option value="板" ${r.type === '板' ? 'selected' : ''}>板</option>
+                <option value="墙" ${r.type === '墙' ? 'selected' : ''}>墙</option>
+                <option value="柱" ${r.type === '柱' ? 'selected' : ''}>柱</option>
+              </select>
+            </td>
+            <td class="border-b border-gray-200 px-6 py-4">
+              <input type="text" value="${escapeHtml(r.number)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="number" data-index="${actualIndex}">
+            </td>
+            <td class="border-b border-gray-200 px-6 py-4">
+              <input type="number" step="0.001" value="${r.height}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="height" data-index="${actualIndex}">
+            </td>
+            <td class="border-b border-gray-200 px-6 py-4">
+              <input type="number" step="0.001" value="${r.thick}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="thick" data-index="${actualIndex}">
+            </td>
+            <td class="border-b border-gray-200 px-6 py-4">
+              <input type="number" step="0.001" value="${r.length}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="length" data-index="${actualIndex}">
+            </td>
+            <td class="border-b border-gray-200 px-6 py-4">
+              <input type="number" min="1" value="${r.count}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="count" data-index="${actualIndex}">
+            </td>
+            <td class="border-b border-gray-200 px-6 py-4">
+              <span class="volume-display font-semibold text-blue-600" data-index="${actualIndex}">${r.volume.toFixed(3)}</span>
+            </td>
+            <td class="border-b border-gray-200 px-6 py-4">
+              <div class="flex gap-2">
+                <button data-index="${actualIndex}" class="update-btn btn-primary px-3 py-1 rounded-lg hover:shadow-lg text-sm">更新</button>
+                <button data-index="${actualIndex}" class="delete-btn btn-danger px-3 py-1 rounded-lg hover:shadow-lg text-sm">删除</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+        
+        // 更新总量显示
+        const totalVolume = allRecords.reduce((sum, r) => sum + r.volume, 0);
+        totalDisplay.textContent = totalVolume.toFixed(3);
+        
+        // 更新分页信息
+        updatePaginationInfo(totalRecords, totalPages);
+        
+        // 绑定事件
+        bindTableEvents();
+      }
+
+      // 更新分页信息
+      function updatePaginationInfo(totalRecords, totalPages) {
+        currentPageSpan.textContent = currentPage;
+        totalPagesSpan.textContent = totalPages;
+        totalRecordsSpan.textContent = totalRecords;
+        
+        // 更新按钮状态
+        prevPageBtn.disabled = currentPage <= 1;
+        nextPageBtn.disabled = currentPage >= totalPages;
+      }
+
+      // 绑定表格事件
+      function bindTableEvents() {
+        // 绑定删除事件
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async e => {
+            const idx = e.target.getAttribute('data-index');
+            if (confirm('确定删除这条记录吗？')) {
+              try {
+                const res = await fetch(`/records/${idx}`, { 
+                  method: 'DELETE',
+                  headers: { 'Authorization': token }
+                });
+                if (res.ok) {
+                  loadRecords();
+                } else {
+                  error.textContent = '删除失败';
+                }
+              } catch (err) {
+                console.error(err);
+                error.textContent = '删除失败';
+              }
+            }
+          });
+        });
+
+        // 绑定更新事件
+        document.querySelectorAll('.update-btn').forEach(btn => {
+          btn.addEventListener('click', async e => {
+            const idx = parseInt(e.target.getAttribute('data-index'));
+            await updateRecord(idx);
+          });
+        });
+
+        // 绑定实时计算体积事件
+        document.querySelectorAll('input[data-field="height"], input[data-field="thick"], input[data-field="length"], input[data-field="count"]').forEach(input => {
+          input.addEventListener('input', e => {
+            const idx = parseInt(e.target.getAttribute('data-index'));
+            updateVolumeDisplay(idx);
+          });
+        });
+      }
+       
+       // 加载用户统计信息
+       async function loadStats() {
+         try {
+           const res = await fetch('/stats', {
+             headers: { 'Authorization': token }
+           });
+           
+           if (!res.ok) {
+             if (res.status === 403) {
+               logout();
+               return;
+             }
+             throw new Error('加载统计信息失败');
+           }
+           
+           const stats = await res.json();
+           statsInfo.textContent = `记录: ${stats.totalRecords} | 部位: ${stats.parts.length} | 构件类型: ${stats.types.length}`;
+         } catch (err) {
+           console.error(err);
+           statsInfo.textContent = '统计信息加载失败';
+         }
+       }
+
+      // 分页事件处理
+      prevPageBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderPagedRecords();
+        }
+      });
+
+      nextPageBtn.addEventListener('click', () => {
+        const totalPages = Math.ceil(allRecords.length / pageSize);
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderPagedRecords();
+        }
+      });
+
+      pageSizeSelect.addEventListener('change', () => {
+        pageSize = parseInt(pageSizeSelect.value);
+        currentPage = 1; // 重置到第一页
+        renderPagedRecords();
+      });
+
+      // 添加部位按钮
+      document.getElementById('add-part-btn').addEventListener('click', () => {
+        const name = partInput.value.trim();
+        if (!name) return;
+        const exists = [...partSelect.options].some(opt => opt.value === name);
+        if (!exists) {
+          const option = document.createElement('option');
+          option.value = option.text = name;
+          partSelect.appendChild(option);
+          partSelect.value = name;
+        }
+        partInput.value = '';
+      });
+
+      // 添加构件按钮
+      document.getElementById('add-btn').addEventListener('click', async () => {
+        error.textContent = '';
+        const part = partSelect.value;
+        const type = document.getElementById('type').value;
+        const number = document.getElementById('number').value.trim();
+        const height = parseFloat(document.getElementById('height').value);
+        const thick = parseFloat(document.getElementById('thick').value);
+        const length = parseFloat(document.getElementById('length').value);
+        const count = parseInt(document.getElementById('count').value);
+
+        if (!part || part === '请选择部位') return error.textContent = '请选择部位名称';
+        if (!number) return error.textContent = '请填写编号';
+        if (isNaN(height) || height <= 0) return error.textContent = '高度必须大于0';
+        if (isNaN(thick) || thick <= 0) return error.textContent = '厚度必须大于0';
+        if (isNaN(length) || length <= 0) return error.textContent = '长度必须大于0';
+        if (isNaN(count) || count <= 0) return error.textContent = '数量必须大于0';
+
+        const payload = { part, type, number, height, thick, length, count };
+
+        try {
+          const res = await fetch('/records', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': token
+            },
+            body: JSON.stringify(payload)
+          });
+          
+          if (!res.ok) {
+            if (res.status === 403) {
+              logout();
+              return;
+            }
+            const json = await res.json();
+            error.textContent = json.message || '添加失败';
+            return;
+          }
+          
+          await loadRecords();
+
+          ['number', 'height', 'thick', 'length'].forEach(id => document.getElementById(id).value = '');
+          document.getElementById('count').value = '1';
+
+        } catch (err) {
+          console.error(err);
+          error.textContent = '添加失败';
+        }
+      });
+
+      // 保存数据功能
+       document.getElementById('save-btn').addEventListener('click', async () => {
+         try {
+           const records = await fetch('/records', {
+             headers: { 'Authorization': token }
+           }).then(res => res.json());
+           
+           if (records.length === 0) {
+             alert('没有数据可保存');
+             return;
+           }
+           
+           const name = prompt('请输入保存数据的名称：');
+           if (!name) return;
+           
+           const res = await fetch('/save', {
+             method: 'POST',
+             headers: { 
+               'Content-Type': 'application/json',
+               'Authorization': token
+             },
+             body: JSON.stringify({ name, records })
+           });
+           
+           if (res.ok) {
+             alert('数据保存成功！');
+             // 保存成功后清空当前页面数据
+             await clearAllRecords();
+           } else {
+             const data = await res.json();
+             alert(data.message || '保存失败');
+           }
+         } catch (err) {
+           console.error(err);
+           alert('保存失败');
+         }
+       });
+       
+       // 历史数据按钮
+       document.getElementById('history-btn').addEventListener('click', () => {
+         showHistoryPage();
+       });
+       
+       // 返回主界面按钮
+       document.getElementById('back-to-main').addEventListener('click', () => {
+         showMainPage();
+       });
+       
+       // 返回历史页面按钮
+       document.getElementById('back-to-history').addEventListener('click', () => {
+         showHistoryPage();
+       });
+       
+       // 保存历史修改按钮
+       document.getElementById('save-history-btn').addEventListener('click', async () => {
+         await saveHistoryChanges();
+       });
+       
+       // 导出历史详情数据按钮
+       document.getElementById('export-history-detail-btn').addEventListener('click', async () => {
+         if (currentHistoryId) {
+           await exportHistoryData(currentHistoryId);
+         } else {
+           alert('无法导出：未找到历史数据ID');
+         }
+       });
+       
+       // 显示历史数据页面
+       async function showHistoryPage() {
+         try {
+           const res = await fetch('/history', {
+             headers: { 'Authorization': token }
+           });
+           
+           if (!res.ok) {
+             if (res.status === 403) {
+               logout();
+               return;
+             }
+             throw new Error('加载历史数据失败');
+           }
+           
+           const history = await res.json();
+           renderHistoryTable(history);
+           
+           appContainer.style.display = 'none';
+           historyContainer.style.display = 'block';
+           historyDetailContainer.style.display = 'none';
+         } catch (err) {
+           console.error(err);
+           alert('加载历史数据失败');
+         }
+       }
+       
+       // 显示主界面
+       function showMainPage() {
+         appContainer.style.display = 'block';
+         historyContainer.style.display = 'none';
+         historyDetailContainer.style.display = 'none';
+       }
+       
+       // 渲染历史数据表格
+       function renderHistoryTable(history) {
+         historyTbody.innerHTML = '';
+         
+         if (history.length === 0) {
+           const tr = document.createElement('tr');
+           tr.innerHTML = '<td colspan="7" class="px-4 py-2 text-gray-500">暂无历史数据</td>';
+           historyTbody.appendChild(tr);
+           return;
+         }
+         
+         history.forEach((item, index) => {
+           const totalVolume = item.records.reduce((sum, r) => sum + r.volume, 0);
+           const tr = document.createElement('tr');
+           tr.innerHTML = `
+             <td class="border-b border-gray-200 px-6 py-4">${escapeHtml(item.name)}</td>
+             <td class="border-b border-gray-200 px-6 py-4">${item.records.length}</td>
+             <td class="border-b border-gray-200 px-6 py-4 font-semibold text-blue-600">${totalVolume.toFixed(3)}</td>
+             <td class="border-b border-gray-200 px-6 py-4">${new Date(item.createdAt).toLocaleString()}</td>
+             <td class="border-b border-gray-200 px-6 py-4">${new Date(item.updatedAt).toLocaleString()}</td>
+             <td class="border-b border-gray-200 px-6 py-4">
+               <button data-id="${item.id}" class="view-history-btn btn-primary px-3 py-1 rounded-lg hover:shadow-lg mr-2">查看</button>
+               <button data-id="${item.id}" class="export-history-btn btn-success px-3 py-1 rounded-lg hover:shadow-lg mr-2">导出</button>
+               <button data-id="${item.id}" class="delete-history-btn btn-danger px-3 py-1 rounded-lg hover:shadow-lg">删除</button>
+             </td>
+           `;
+           historyTbody.appendChild(tr);
+         });
+         
+         // 绑定查看、导出和删除事件
+         document.querySelectorAll('.view-history-btn').forEach(btn => {
+           btn.addEventListener('click', (e) => {
+             const id = Number(e.target.getAttribute('data-id'));
+             showHistoryDetail(id);
+           });
+         });
+         
+         document.querySelectorAll('.export-history-btn').forEach(btn => {
+           btn.addEventListener('click', async (e) => {
+             const id = Number(e.target.getAttribute('data-id'));
+             await exportHistoryData(id);
+           });
+         });
+         
+         document.querySelectorAll('.delete-history-btn').forEach(btn => {
+           btn.addEventListener('click', async (e) => {
+             const id = Number(e.target.getAttribute('data-id'));
+             if (confirm('确定删除这条历史数据吗？')) {
+               await deleteHistory(id);
+             }
+           });
+         });
+       }
+       
+       // 显示历史数据详情
+       async function showHistoryDetail(id) {
+         try {
+           const res = await fetch('/history', {
+             headers: { 'Authorization': token }
+           });
+           
+           if (!res.ok) throw new Error('加载历史数据失败');
+           
+           const history = await res.json();
+           const item = history.find(h => h.id === id);
+           
+           if (!item) {
+             alert('未找到历史数据');
+             return;
+           }
+           
+           currentHistoryId = id;
+           historyNameInput.value = item.name;
+           renderHistoryDetailTable(item.records);
+           
+           historyContainer.style.display = 'none';
+           historyDetailContainer.style.display = 'block';
+         } catch (err) {
+           console.error(err);
+           alert('加载历史数据详情失败');
+         }
+       }
+       
+       // 渲染历史数据详情表格
+       function renderHistoryDetailTable(records) {
+         historyDetailTbody.innerHTML = '';
+         
+         let total = 0;
+         const partsSet = new Set();
+         const typesSet = new Set();
+         
+         records.forEach((r, i) => {
+           total += r.volume;
+           partsSet.add(r.part);
+           typesSet.add(r.type);
+           
+           const tr = document.createElement('tr');
+           tr.innerHTML = `
+             <td class="border-b border-gray-200 px-6 py-4">
+               <input type="text" value="${escapeHtml(r.part)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="part" data-index="${i}">
+             </td>
+             <td class="border-b border-gray-200 px-6 py-4">
+               <select class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="type" data-index="${i}">
+                 <option value="梁" ${r.type === '梁' ? 'selected' : ''}>梁</option>
+                 <option value="板" ${r.type === '板' ? 'selected' : ''}>板</option>
+                 <option value="墙" ${r.type === '墙' ? 'selected' : ''}>墙</option>
+                 <option value="柱" ${r.type === '柱' ? 'selected' : ''}>柱</option>
+               </select>
+             </td>
+             <td class="border-b border-gray-200 px-6 py-4">
+               <input type="text" value="${escapeHtml(r.number)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="number" data-index="${i}">
+             </td>
+             <td class="border-b border-gray-200 px-6 py-4">
+               <input type="number" step="0.001" value="${r.height}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="height" data-index="${i}">
+             </td>
+             <td class="border-b border-gray-200 px-6 py-4">
+               <input type="number" step="0.001" value="${r.thick}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="thick" data-index="${i}">
+             </td>
+             <td class="border-b border-gray-200 px-6 py-4">
+               <input type="number" step="0.001" value="${r.length}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="length" data-index="${i}">
+             </td>
+             <td class="border-b border-gray-200 px-6 py-4">
+               <input type="number" min="1" value="${r.count}" class="w-full px-3 py-2 border border-gray-300 rounded-lg input-focus bg-white/80" data-field="count" data-index="${i}">
+             </td>
+             <td class="border-b border-gray-200 px-6 py-4">
+               <span class="volume-display font-semibold text-blue-600">${r.volume.toFixed(3)}</span>
+             </td>
+             <td class="border-b border-gray-200 px-6 py-4">
+               <button data-index="${i}" class="delete-history-record-btn btn-danger px-3 py-1 rounded-lg hover:shadow-lg">删除</button>
+             </td>
+           `;
+           historyDetailTbody.appendChild(tr);
+         });
+         
+         // 更新统计信息
+         historyDetailStats.textContent = `记录: ${records.length} | 部位: ${partsSet.size} | 构件类型: ${typesSet.size}`;
+         historyDetailTotal.textContent = total.toFixed(3);
+         
+         // 绑定输入事件，实时计算体积
+         document.querySelectorAll('input[type="number"], select').forEach(input => {
+           input.addEventListener('input', updateVolume);
+         });
+         
+         // 绑定删除记录事件
+         document.querySelectorAll('.delete-history-record-btn').forEach(btn => {
+           btn.addEventListener('click', (e) => {
+             const index = Number(e.target.getAttribute('data-index'));
+             if (confirm('确定删除这条记录吗？')) {
+               deleteHistoryRecord(index);
+             }
+           });
+         });
+       }
+       
+       // 更新体积计算
+       function updateVolume() {
+         const rows = historyDetailTbody.querySelectorAll('tr');
+         let total = 0;
+         
+         rows.forEach((row, index) => {
+           const height = parseFloat(row.querySelector('[data-field="height"]').value) || 0;
+           const thick = parseFloat(row.querySelector('[data-field="thick"]').value) || 0;
+           const length = parseFloat(row.querySelector('[data-field="length"]').value) || 0;
+           const count = parseInt(row.querySelector('[data-field="count"]').value) || 0;
+           
+           const volume = height * thick * length * count;
+           row.querySelector('.volume-display').textContent = volume.toFixed(3);
+           total += volume;
+         });
+         
+         historyDetailTotal.textContent = total.toFixed(3);
+       }
+       
+       // 删除历史记录
+       function deleteHistoryRecord(index) {
+         const rows = historyDetailTbody.querySelectorAll('tr');
+         if (rows[index]) {
+           rows[index].remove();
+           updateVolume();
+         }
+       }
+       
+       // 保存历史修改
+       async function saveHistoryChanges() {
+         try {
+           const name = historyNameInput.value.trim();
+           if (!name) {
+             alert('请输入数据名称');
+             return;
+           }
+           
+           const rows = historyDetailTbody.querySelectorAll('tr');
+           const records = [];
+           
+           rows.forEach(row => {
+             const part = row.querySelector('[data-field="part"]').value.trim();
+             const type = row.querySelector('[data-field="type"]').value;
+             const number = row.querySelector('[data-field="number"]').value.trim();
+             const height = parseFloat(row.querySelector('[data-field="height"]').value) || 0;
+             const thick = parseFloat(row.querySelector('[data-field="thick"]').value) || 0;
+             const length = parseFloat(row.querySelector('[data-field="length"]').value) || 0;
+             const count = parseInt(row.querySelector('[data-field="count"]').value) || 0;
+             
+             if (part && number && height > 0 && thick > 0 && length > 0 && count > 0) {
+               records.push({
+                 part,
+                 type,
+                 number,
+                 height,
+                 thick,
+                 length,
+                 count,
+                 volume: height * thick * length * count
+               });
+             }
+           });
+           
+           if (records.length === 0) {
+             alert('没有有效的数据记录');
+             return;
+           }
+           
+           const res = await fetch(`/history/${currentHistoryId}`, {
+             method: 'PUT',
+             headers: { 
+               'Content-Type': 'application/json',
+               'Authorization': token
+             },
+             body: JSON.stringify({ name, records })
+           });
+           
+           if (res.ok) {
+             alert('历史数据更新成功！');
+             showHistoryPage();
+           } else {
+             const data = await res.json();
+             alert(data.message || '更新失败');
+           }
+         } catch (err) {
+           console.error(err);
+           alert('保存修改失败');
+         }
+       }
+       
+       // 删除历史数据
+       async function deleteHistory(id) {
+         try {
+           const res = await fetch(`/history/${id}`, {
+             method: 'DELETE',
+             headers: { 'Authorization': token }
+           });
+           
+           if (res.ok) {
+             alert('历史数据删除成功！');
+             showHistoryPage();
+           } else {
+             const data = await res.json();
+             alert(data.message || '删除失败');
+           }
+         } catch (err) {
+           console.error(err);
+           alert('删除失败');
+         }
+       }
+       
+       // 导出历史数据
+       async function exportHistoryData(id) {
+         try {
+           const res = await fetch(`/export/history/${id}`, {
+             headers: { 'Authorization': token }
+           });
+           
+           if (!res.ok) {
+             if (res.status === 400) {
+               alert('无数据可导出');
+               return;
+             }
+             const data = await res.json();
+             alert(data.message || '导出失败');
+             return;
+           }
+           
+           // 获取文件名
+           const contentDisposition = res.headers.get('Content-Disposition');
+           let filename = '混凝土量历史数据.xlsx';
+           if (contentDisposition) {
+             const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+             if (filenameMatch) {
+               filename = decodeURIComponent(filenameMatch[1]);
+             }
+           }
+           
+           // 下载文件
+           const blob = await res.blob();
+           const url = window.URL.createObjectURL(blob);
+           const a = document.createElement('a');
+           a.href = url;
+           a.download = filename;
+           document.body.appendChild(a);
+           a.click();
+           window.URL.revokeObjectURL(url);
+           document.body.removeChild(a);
+           
+           alert('历史数据导出成功！');
+         } catch (err) {
+           console.error(err);
+           alert('导出失败');
+         }
+       }
+       
+       // 更新记录
+       async function updateRecord(index) {
+         try {
+           const row = tbody.querySelector(`tr:nth-child(${index + 1})`);
+           if (!row) return;
+           
+           const part = row.querySelector('[data-field="part"]').value.trim();
+           const type = row.querySelector('[data-field="type"]').value;
+           const number = row.querySelector('[data-field="number"]').value.trim();
+           const height = parseFloat(row.querySelector('[data-field="height"]').value);
+           const thick = parseFloat(row.querySelector('[data-field="thick"]').value);
+           const length = parseFloat(row.querySelector('[data-field="length"]').value);
+           const count = parseInt(row.querySelector('[data-field="count"]').value);
+           
+           if (!part) return alert('请输入部位名称');
+           if (!number) return alert('请输入编号');
+           if (isNaN(height) || height <= 0) return alert('高度必须大于0');
+           if (isNaN(thick) || thick <= 0) return alert('厚度必须大于0');
+           if (isNaN(length) || length <= 0) return alert('长度必须大于0');
+           if (isNaN(count) || count <= 0) return alert('数量必须大于0');
+           
+           const volume = height * thick * length * count;
+           
+           const res = await fetch(`/records/${index}`, {
+             method: 'PUT',
+             headers: { 
+               'Content-Type': 'application/json',
+               'Authorization': token
+             },
+             body: JSON.stringify({
+               part,
+               type,
+               number,
+               height,
+               thick,
+               length,
+               count,
+               volume
+             })
+           });
+           
+           if (res.ok) {
+             alert('记录更新成功！');
+             loadRecords();
+           } else {
+             const data = await res.json();
+             alert(data.message || '更新失败');
+           }
+         } catch (err) {
+           console.error(err);
+           alert('更新失败');
+         }
+       }
+       
+       // 更新体积显示
+       function updateVolumeDisplay(index) {
+         const row = tbody.querySelector(`tr:nth-child(${index + 1})`);
+         if (!row) return;
+         
+         const height = parseFloat(row.querySelector('[data-field="height"]').value) || 0;
+         const thick = parseFloat(row.querySelector('[data-field="thick"]').value) || 0;
+         const length = parseFloat(row.querySelector('[data-field="length"]').value) || 0;
+         const count = parseInt(row.querySelector('[data-field="count"]').value) || 0;
+         
+         const volume = height * thick * length * count;
+         row.querySelector('.volume-display').textContent = volume.toFixed(3);
+         
+         // 更新总量
+         updateTotalVolume();
+       }
+       
+       // 更新总量
+       function updateTotalVolume() {
+         const rows = tbody.querySelectorAll('tr');
+         let total = 0;
+         
+         rows.forEach(row => {
+           const volumeDisplay = row.querySelector('.volume-display');
+           if (volumeDisplay) {
+             total += parseFloat(volumeDisplay.textContent) || 0;
+           }
+         });
+         
+         totalDisplay.textContent = total.toFixed(3);
+       }
+
+       // 清空当前页面所有记录
+       async function clearAllRecords() {
+         try {
+           // 使用批量删除端点清空所有记录
+           const res = await fetch('/records', {
+             method: 'DELETE',
+             headers: { 'Authorization': token }
+           });
+           
+           if (!res.ok) {
+             const data = await res.json();
+             throw new Error(data.message || '清空失败');
+           }
+           
+           // 重新加载数据（此时应该为空）
+           loadRecords();
+         } catch (err) {
+           console.error(err);
+           alert('清空记录失败');
+         }
+       }
+       
+       // 初始化
+       checkAuth();
+     })();
+  </script>
+</body>
+</html>

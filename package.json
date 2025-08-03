@@ -1,0 +1,31 @@
+{
+  "name": "concrete-calculator",
+  "version": "1.0.0",
+  "description": "混凝土量计算器 - 工程计算工具",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "backup": "node -e \"const FileDatabase = require('./database'); new FileDatabase().createBackup().then(() => console.log('备份完成')).catch(console.error)\"",
+    "stats": "node -e \"const FileDatabase = require('./database'); new FileDatabase().getDataStats().then(console.log).catch(console.error)\""
+  },
+  "keywords": [
+    "concrete",
+    "calculator",
+    "engineering",
+    "construction"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.1",
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^2.6.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}

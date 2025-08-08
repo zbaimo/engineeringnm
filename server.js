@@ -165,7 +165,7 @@ function getUserHistory(username) {
 }
 
 // 用户注册
-app.post('/register', authLimiter, (req, res) => {
+app.post('/register', authLimiter, async (req, res) => {
   try {
     // 检查是否允许注册
     if (!systemSettings.allowRegistration) {
@@ -202,7 +202,17 @@ app.post('/register', authLimiter, (req, res) => {
     userRecords[sanitizedUsername] = [];
     userHistory[sanitizedUsername] = [];
     
-    console.log(`新用户注册: ${sanitizedUsername}`);
+    // 保存到文件数据库
+    try {
+      await db.saveUsers(users);
+      await db.saveUserRecords(userRecords);
+      await db.saveUserHistory(userHistory);
+      console.log(`✅ 新用户注册并保存到数据库: ${sanitizedUsername}`);
+    } catch (error) {
+      console.error('❌ 保存用户数据失败:', error.message);
+      // 即使保存失败，注册仍然成功（数据在内存中）
+    }
+    
     res.status(201).json({ message: '注册成功' });
   } catch (error) {
     console.error('注册错误:', error);
@@ -249,7 +259,7 @@ app.get('/records', verifyToken, (req, res) => {
 });
 
 // 添加记录（数据隔离）
-app.post('/records', verifyToken, (req, res) => {
+app.post('/records', verifyToken, async (req, res) => {
   try {
     const username = req.user.username;
     const records = getUserRecords(username);
@@ -286,6 +296,15 @@ app.post('/records', verifyToken, (req, res) => {
     };
     
     records.push(sanitizedRecord);
+    
+    // 保存到文件数据库
+    try {
+      await db.saveUserRecords(userRecords);
+      console.log(`✅ 记录已保存到数据库: ${username}`);
+    } catch (error) {
+      console.error('❌ 保存记录失败:', error.message);
+    }
+    
     res.status(201).json({ message: '添加成功' });
   } catch (error) {
     console.error('添加记录错误:', error);
@@ -294,7 +313,7 @@ app.post('/records', verifyToken, (req, res) => {
 });
 
 // 删除记录（数据隔离）
-app.delete('/records/:index', verifyToken, (req, res) => {
+app.delete('/records/:index', verifyToken, async (req, res) => {
   try {
     const username = req.user.username;
     const records = getUserRecords(username);
@@ -311,6 +330,15 @@ app.delete('/records/:index', verifyToken, (req, res) => {
     }
     
     records.splice(i, 1);
+    
+    // 保存到文件数据库
+    try {
+      await db.saveUserRecords(userRecords);
+      console.log(`✅ 记录删除已保存到数据库: ${username}`);
+    } catch (error) {
+      console.error('❌ 保存删除操作失败:', error.message);
+    }
+    
     res.json({ message: '删除成功' });
   } catch (error) {
     console.error('删除记录错误:', error);
@@ -319,7 +347,7 @@ app.delete('/records/:index', verifyToken, (req, res) => {
 });
 
 // 更新记录（数据隔离）
-app.put('/records/:index', verifyToken, (req, res) => {
+app.put('/records/:index', verifyToken, async (req, res) => {
   try {
     const username = req.user.username;
     const records = getUserRecords(username);
@@ -361,6 +389,14 @@ app.put('/records/:index', verifyToken, (req, res) => {
       updatedAt: new Date().toISOString()
     };
     
+    // 保存到文件数据库
+    try {
+      await db.saveUserRecords(userRecords);
+      console.log(`✅ 记录更新已保存到数据库: ${username}`);
+    } catch (error) {
+      console.error('❌ 保存更新操作失败:', error.message);
+    }
+    
     res.json({ message: '更新成功' });
   } catch (error) {
     console.error('更新记录错误:', error);
@@ -369,13 +405,21 @@ app.put('/records/:index', verifyToken, (req, res) => {
 });
 
 // 清空所有记录（数据隔离）
-app.delete('/records', verifyToken, (req, res) => {
+app.delete('/records', verifyToken, async (req, res) => {
   try {
     const username = req.user.username;
     const records = getUserRecords(username);
     
     // 清空用户的所有记录
     records.length = 0;
+    
+    // 保存到文件数据库
+    try {
+      await db.saveUserRecords(userRecords);
+      console.log(`✅ 记录清空已保存到数据库: ${username}`);
+    } catch (error) {
+      console.error('❌ 保存清空操作失败:', error.message);
+    }
     
     res.json({ message: '所有记录已清空' });
   } catch (error) {
@@ -513,7 +557,7 @@ app.get('/history', verifyToken, (req, res) => {
 });
 
 // 保存数据（数据隔离）
-app.post('/save', verifyToken, (req, res) => {
+app.post('/save', verifyToken, async (req, res) => {
   try {
     const username = req.user.username;
     const { name, records } = req.body;
@@ -561,6 +605,14 @@ app.post('/save', verifyToken, (req, res) => {
 
     userHistory.push(historyEntry);
 
+    // 保存到文件数据库
+    try {
+      await db.saveUserHistory(userHistory);
+      console.log(`✅ 历史数据已保存到数据库: ${username}`);
+    } catch (error) {
+      console.error('❌ 保存历史数据失败:', error.message);
+    }
+
     res.status(201).json({ message: '数据保存成功', historyEntry });
   } catch (error) {
     console.error('保存数据错误:', error);
@@ -569,7 +621,7 @@ app.post('/save', verifyToken, (req, res) => {
 });
 
 // 更新历史数据（数据隔离）
-app.put('/history/:id', verifyToken, (req, res) => {
+app.put('/history/:id', verifyToken, async (req, res) => {
   try {
     const username = req.user.username;
     const historyId = Number(req.params.id);
@@ -619,6 +671,14 @@ app.put('/history/:id', verifyToken, (req, res) => {
       updatedAt: new Date().toISOString()
     };
 
+    // 保存到文件数据库
+    try {
+      await db.saveUserHistory(userHistory);
+      console.log(`✅ 历史数据更新已保存到数据库: ${username}`);
+    } catch (error) {
+      console.error('❌ 保存历史数据更新失败:', error.message);
+    }
+
     res.json({ message: '历史数据更新成功', historyEntry: userHistory[index] });
   } catch (error) {
     console.error('更新历史数据错误:', error);
@@ -627,7 +687,7 @@ app.put('/history/:id', verifyToken, (req, res) => {
 });
 
 // 删除历史数据（数据隔离）
-app.delete('/history/:id', verifyToken, (req, res) => {
+app.delete('/history/:id', verifyToken, async (req, res) => {
   try {
     const username = req.user.username;
     const historyId = Number(req.params.id);
@@ -644,6 +704,14 @@ app.delete('/history/:id', verifyToken, (req, res) => {
 
     if (userHistory.length === initialLength) {
       return res.status(404).json({ message: '未找到历史数据' });
+    }
+
+    // 保存到文件数据库
+    try {
+      await db.saveUserHistory(userHistory);
+      console.log(`✅ 历史数据删除已保存到数据库: ${username}`);
+    } catch (error) {
+      console.error('❌ 保存历史数据删除失败:', error.message);
     }
 
     res.json({ message: '历史数据删除成功' });
@@ -716,12 +784,21 @@ app.get('/admin/settings', verifyAdminToken, (req, res) => {
 });
 
 // 更新管理员设置
-app.put('/admin/settings', verifyAdminToken, (req, res) => {
+app.put('/admin/settings', verifyAdminToken, async (req, res) => {
   try {
     const { allowRegistration } = req.body;
     
     if (typeof allowRegistration === 'boolean') {
       systemSettings.allowRegistration = allowRegistration;
+      
+      // 保存到文件数据库
+      try {
+        await db.saveSystemSettings(systemSettings);
+        console.log('✅ 系统设置已保存到数据库');
+      } catch (error) {
+        console.error('❌ 保存系统设置失败:', error.message);
+      }
+      
       res.json({ message: '系统设置更新成功' });
     } else {
       res.status(400).json({ message: '参数错误' });
@@ -733,7 +810,7 @@ app.put('/admin/settings', verifyAdminToken, (req, res) => {
 });
 
 // 更新管理员账号
-app.put('/admin/account', verifyAdminToken, (req, res) => {
+app.put('/admin/account', verifyAdminToken, async (req, res) => {
   try {
     const { username, password } = req.body;
     
@@ -747,7 +824,14 @@ app.put('/admin/account', verifyAdminToken, (req, res) => {
     adminAccount.username = sanitizedUsername;
     adminAccount.password = hashedPassword;
     
-    console.log(`管理员账号更新: ${sanitizedUsername}`);
+    // 保存到文件数据库
+    try {
+      await db.saveAdminAccount(adminAccount);
+      console.log(`✅ 管理员账号更新并保存到数据库: ${sanitizedUsername}`);
+    } catch (error) {
+      console.error('❌ 保存管理员账号失败:', error.message);
+    }
+    
     res.json({ message: '管理员账号更新成功' });
   } catch (error) {
     console.error('更新管理员账号错误:', error);
@@ -775,7 +859,7 @@ app.get('/admin/users', verifyAdminToken, (req, res) => {
 });
 
 // 更新用户密码
-app.put('/admin/users/:username/password', verifyAdminToken, (req, res) => {
+app.put('/admin/users/:username/password', verifyAdminToken, async (req, res) => {
   try {
     const { username } = req.params;
     const { password } = req.body;
@@ -791,7 +875,15 @@ app.put('/admin/users/:username/password', verifyAdminToken, (req, res) => {
     }
     
     user.password = hashPassword(password);
-    console.log(`用户密码更新: ${sanitizedUsername}`);
+    
+    // 保存到文件数据库
+    try {
+      await db.saveUsers(users);
+      console.log(`✅ 用户密码更新并保存到数据库: ${sanitizedUsername}`);
+    } catch (error) {
+      console.error('❌ 保存用户密码失败:', error.message);
+    }
+    
     res.json({ message: '用户密码更新成功' });
   } catch (error) {
     console.error('更新用户密码错误:', error);
@@ -800,7 +892,7 @@ app.put('/admin/users/:username/password', verifyAdminToken, (req, res) => {
 });
 
 // 删除用户
-app.delete('/admin/users/:username', verifyAdminToken, (req, res) => {
+app.delete('/admin/users/:username', verifyAdminToken, async (req, res) => {
   try {
     const { username } = req.params;
     const sanitizedUsername = sanitizeString(username);
@@ -815,7 +907,16 @@ app.delete('/admin/users/:username', verifyAdminToken, (req, res) => {
     delete userRecords[sanitizedUsername];
     delete userHistory[sanitizedUsername];
     
-    console.log(`用户删除: ${sanitizedUsername}`);
+    // 保存到文件数据库
+    try {
+      await db.saveUsers(users);
+      await db.saveUserRecords(userRecords);
+      await db.saveUserHistory(userHistory);
+      console.log(`✅ 用户删除并保存到数据库: ${sanitizedUsername}`);
+    } catch (error) {
+      console.error('❌ 保存用户删除失败:', error.message);
+    }
+    
     res.json({ message: '用户删除成功' });
   } catch (error) {
     console.error('删除用户错误:', error);
@@ -829,17 +930,6 @@ async function initializeDatabase() {
     if (!dbInitialized) {
       await db.initialize();
       
-      // 从内存数据迁移到文件数据库
-      const memoryData = {
-        users,
-        userRecords,
-        userHistory,
-        adminAccount,
-        systemSettings
-      };
-      
-      await db.migrateFromMemory(memoryData);
-      
       // 从数据库加载数据到内存
       users = await db.getUsers();
       userRecords = await db.getUserRecords();
@@ -852,6 +942,7 @@ async function initializeDatabase() {
       
       dbInitialized = true;
       console.log('✅ 数据库初始化完成');
+      console.log(`📊 已加载 ${users.length} 个用户`);
     }
   } catch (error) {
     console.error('❌ 数据库初始化失败:', error.message);

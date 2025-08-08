@@ -34,9 +34,20 @@ npm install
 ```
 
 #### 3. 启动服务
+
+**Windows (推荐)**:
+```bash
+# 使用批处理文件启动
+start.bat
+
+# 或使用PowerShell脚本
+.\start.ps1
+```
+
+**手动启动**:
 ```bash
 # 设置环境变量
-$env:JWT_SECRET="fixed_jwt_secret_for_admin_login"
+$env:JWT_SECRET="fixed-secret-key-for-testing-12345"
 
 # 启动服务器
 node server.js
@@ -90,6 +101,8 @@ docker-compose up -d
 
 - **管理员账号**: admin
 - **管理员密码**: admin
+
+> **重要**: 请使用提供的启动脚本 (`start.bat` 或 `start.ps1`) 来确保数据持久化正常工作。
 
 ## 📁 项目结构
 
